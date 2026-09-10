@@ -1,0 +1,70 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    min-height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 700px;
+    margin: 50px auto;
+}
+
+h1 {
+    text-align: center;
+    font-size: 40px;
+}
+
+.subtitulo {
+    text-align: center;
+    margin: 10px 0 30px;
+    color: #666;
+}
+
+form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+input {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+button {
+    padding: 14px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.tarefas {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.tarefas h2 {
+    margin-bottom: 20px;
+}
+
+.tarefa {
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.vazio {
+    color: #777;
+    text-align: center;
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>TaskFlow</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <main class="container">
+
+        <h1>TaskFlow</h1>
+
+        <p class="subtitulo">
+            Sistema de Controle de Tarefas
+        </p>
+
+        <form action="/adicionar" method="POST">
+
+            <input
+                type="text"
+                name="descricao"
+                placeholder="Digite uma nova tarefa..."
+                required
+            >
+
+            <button type="submit">
+                Adicionar
+            </button>
+
+        </form>
+
+        <section class="tarefas">
+
+            <h2>Minhas tarefas</h2>
+
+            {% if tarefas %}
+
+                {% for tarefa in tarefas %}
+
+                    <div class="tarefa">
+                        <span>{{ tarefa["descricao"] }}</span>
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <p class="vazio">
+                    Nenhuma tarefa cadastrada.
+                </p>
+
+            {% endif %}
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>
