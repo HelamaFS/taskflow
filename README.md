@@ -39,6 +39,13 @@ O projeto utiliza três camadas de desenvolvimento:
 - Conclusão de tarefas
 - Filtros
 - Dashboard
+  
+
+Objetivo
+Desenvolver uma aplicação web utilizando front-end, back-end e banco de dados, demonstrando a evolução do sistema durante os sprints.
+
+Autor
+Helamã da Fonseca Silva
 
 ## Estrutura do projeto
 
@@ -54,9 +61,4 @@ taskflow/
 │
 └── static/
     └── style.css
-   
-   Objetivo
-Desenvolver uma aplicação web utilizando front-end, back-end e banco de dados, demonstrando a evolução do sistema durante os sprints.
-
-Autor
-Helamã da Fonseca Silva
+  
