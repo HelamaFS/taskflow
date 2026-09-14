@@ -57,4 +57,4 @@ def adicionar():
 
 if __name__ == "__main__":
     criar_banco()
-    app.run(debug=True)
+app.run(debug=True)

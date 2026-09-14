@@ -16,35 +16,41 @@ O projeto utiliza três camadas de desenvolvimento:
 ## Tecnologias utilizadas
 
 ### Front-end
+
 - HTML
 - CSS
 
 ### Back-end
+
 - Python
 - Flask
 
 ### Banco de dados
+
 - SQLite
 
 ## Funcionalidades
 
 ### AC1
+
 - Cadastro de tarefas
 - Listagem de tarefas
 - Armazenamento das tarefas no banco de dados
 
 ### Próximas etapas
+
 - Edição de tarefas
 - Exclusão de tarefas
 - Conclusão de tarefas
 - Filtros
 - Dashboard
-  
 
-Objetivo
+## Objetivo
+
 Desenvolver uma aplicação web utilizando front-end, back-end e banco de dados, demonstrando a evolução do sistema durante os sprints.
 
-Autor
+## Autor
+
 Helamã da Fonseca Silva
 
 ## Estrutura do projeto
@@ -61,4 +67,3 @@ taskflow/
 │
 └── static/
     └── style.css
-  
