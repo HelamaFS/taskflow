@@ -44,7 +44,30 @@
                 {% for tarefa in tarefas %}
 
                     <div class="tarefa">
-                        <span>{{ tarefa["descricao"] }}</span>
+
+                        <form action="/editar/{{ tarefa['id'] }}" method="POST" class="form-editar">
+
+                            <input
+                                type="text"
+                                name="descricao"
+                                value="{{ tarefa['descricao'] }}"
+                                required
+                            >
+
+                            <button type="submit">
+                                Editar
+                            </button>
+
+                        </form>
+
+                        <form action="/excluir/{{ tarefa['id'] }}" method="POST">
+
+                            <button type="submit" class="btn-excluir">
+                                Excluir
+                            </button>
+
+                        </form>
+
                     </div>
 
                 {% endfor %}

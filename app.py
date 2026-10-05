@@ -55,6 +55,39 @@ def adicionar():
     return redirect("/")
 
 
+@app.route("/editar/<int:id>", methods=["POST"])
+def editar(id):
+    descricao = request.form["descricao"]
+
+    if descricao.strip():
+        conexao = conectar_banco()
+
+        conexao.execute(
+            "UPDATE tarefas SET descricao = ? WHERE id = ?",
+            (descricao, id)
+        )
+
+        conexao.commit()
+        conexao.close()
+
+    return redirect("/")
+
+
+@app.route("/excluir/<int:id>", methods=["POST"])
+def excluir(id):
+    conexao = conectar_banco()
+
+    conexao.execute(
+        "DELETE FROM tarefas WHERE id = ?",
+        (id,)
+    )
+
+    conexao.commit()
+    conexao.close()
+
+    return redirect("/")
+
+
 if __name__ == "__main__":
     criar_banco()
-app.run(debug=True)
+    app.run(debug=True)
