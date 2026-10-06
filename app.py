@@ -16,7 +16,8 @@ def criar_banco():
     conexao.execute("""
         CREATE TABLE IF NOT EXISTS tarefas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            descricao TEXT NOT NULL
+            descricao TEXT NOT NULL,
+            concluida INTEGER DEFAULT 0
         )
     """)
 
@@ -45,8 +46,8 @@ def adicionar():
         conexao = conectar_banco()
 
         conexao.execute(
-            "INSERT INTO tarefas (descricao) VALUES (?)",
-            (descricao,)
+            "INSERT INTO tarefas (descricao, concluida) VALUES (?, ?)",
+            (descricao, 0)
         )
 
         conexao.commit()
@@ -83,6 +84,30 @@ def excluir(id):
     )
 
     conexao.commit()
+    conexao.close()
+
+    return redirect("/")
+
+
+@app.route("/concluir/<int:id>", methods=["POST"])
+def concluir(id):
+    conexao = conectar_banco()
+
+    tarefa = conexao.execute(
+        "SELECT concluida FROM tarefas WHERE id = ?",
+        (id,)
+    ).fetchone()
+
+    if tarefa:
+        novo_status = 0 if tarefa["concluida"] else 1
+
+        conexao.execute(
+            "UPDATE tarefas SET concluida = ? WHERE id = ?",
+            (novo_status, id)
+        )
+
+        conexao.commit()
+
     conexao.close()
 
     return redirect("/")

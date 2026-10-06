@@ -43,26 +43,63 @@
 
                 {% for tarefa in tarefas %}
 
-                    <div class="tarefa">
+                    <div class="tarefa {% if tarefa['concluida'] %}concluida{% endif %}">
 
-                        <form action="/editar/{{ tarefa['id'] }}" method="POST" class="form-editar">
+                        <form
+                            action="/editar/{{ tarefa['id'] }}"
+                            method="POST"
+                            class="form-editar"
+                        >
 
                             <input
                                 type="text"
                                 name="descricao"
                                 value="{{ tarefa['descricao'] }}"
+                                id="tarefa-{{ tarefa['id'] }}"
+                                readonly
                                 required
                             >
 
-                            <button type="submit">
+                            <button
+                                type="button"
+                                class="btn-editar"
+                                data-id="{{ tarefa['id'] }}"
+                            >
                                 Editar
                             </button>
 
                         </form>
 
-                        <form action="/excluir/{{ tarefa['id'] }}" method="POST">
+                        <form
+                            action="/concluir/{{ tarefa['id'] }}"
+                            method="POST"
+                        >
 
-                            <button type="submit" class="btn-excluir">
+                            {% if tarefa['concluida'] %}
+
+                                <button type="submit">
+                                    Reabrir
+                                </button>
+
+                            {% else %}
+
+                                <button type="submit">
+                                    Concluir
+                                </button>
+
+                            {% endif %}
+
+                        </form>
+
+                        <form
+                            action="/excluir/{{ tarefa['id'] }}"
+                            method="POST"
+                        >
+
+                            <button
+                                type="submit"
+                                class="btn-excluir"
+                            >
                                 Excluir
                             </button>
 
@@ -83,6 +120,38 @@
         </section>
 
     </main>
+
+    
+<script>
+    const botoesEditar = document.querySelectorAll(".btn-editar");
+
+    botoesEditar.forEach(function (botao) {
+
+        botao.addEventListener("click", function () {
+
+            const id = botao.dataset.id;
+            const campo = document.getElementById("tarefa-" + id);
+            const formulario = botao.closest("form");
+
+            if (campo.hasAttribute("readonly")) {
+                // Primeiro clique: habilita a edição
+                campo.removeAttribute("readonly");
+                campo.focus();
+                botao.textContent = "Salvar";
+
+            } else {
+                // Segundo clique: salva a alteração
+                if (campo.value.trim() !== "") {
+                    formulario.requestSubmit();
+                } else {
+                    campo.focus();
+                }
+            }
+
+        });
+
+    });
+</script>
 
 </body>
 
