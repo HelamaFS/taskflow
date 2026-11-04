@@ -1,57 +1,41 @@
 # TaskFlow
 
-Sistema web de controle de tarefas desenvolvido como projeto acadêmico.
+**Sistema web de controle de tarefas desenvolvido como projeto acadêmico.**
 
-## Sobre o projeto
-
-O TaskFlow é um sistema simples para gerenciamento de tarefas.
-O usuário pode cadastrar tarefas e visualizar as tarefas cadastradas.
-
-O projeto utiliza três camadas de desenvolvimento:
-
-- Front-end
-- Back-end
-- Banco de dados
-
-## Tecnologias utilizadas
-
-### Front-end
-
-- HTML
-- CSS
-
-### Back-end
-
-- Python
-- Flask
-
-### Banco de dados
-
-- SQLite
+O TaskFlow é uma aplicação web que permite cadastrar, organizar e acompanhar tarefas de maneira simples e prática.
 
 ## Funcionalidades
 
-### AC1
+### Cadastro e gerenciamento de tarefas
+- Adicionar novas tarefas.
+- Listar tarefas cadastradas.
+- Editar a descrição das tarefas.
+- Excluir tarefas.
 
-- Cadastro de tarefas
-- Listagem de tarefas
-- Armazenamento das tarefas no banco de dados
+### Controle de conclusão
+- Marcar tarefas como concluídas.
+- Reabrir tarefas concluídas.
+- Identificar visualmente tarefas concluídas.
 
-### Próximas etapas
+### Filtros de tarefas
+- Visualizar todas as tarefas.
+- Visualizar somente tarefas pendentes.
+- Visualizar somente tarefas concluídas.
 
-- Edição de tarefas
-- Exclusão de tarefas
-- Conclusão de tarefas
-- Filtros
-- Dashboard
+### Painel de estatísticas
+- Exibir o total de tarefas cadastradas.
+- Mostrar a quantidade de tarefas pendentes.
+- Mostrar a quantidade de tarefas concluídas.
+- Calcular a porcentagem de conclusão.
+- Exibir uma barra visual de progresso.
 
-## Objetivo
+## Tecnologias utilizadas
 
-Desenvolver uma aplicação web utilizando front-end, back-end e banco de dados, demonstrando a evolução do sistema durante os sprints.
-
-## Autor
-
-Helamã da Fonseca Silva
+- **HTML:** estrutura das páginas.
+- **CSS:** estilização e aparência visual.
+- **Python:** lógica da aplicação.
+- **Flask:** framework utilizado no back-end.
+- **SQLite:** banco de dados utilizado para armazenar as tarefas.
 
 ## Estrutura do projeto
 
@@ -60,10 +44,28 @@ taskflow/
 │
 ├── app.py
 ├── database.db
-├── README.md
 │
-├── templates/
-│   └── index.html
+├── static/
+│   └── style.css
 │
-└── static/
-    └── style.css
+└── templates/
+    └── index.html
+```
+
+## Arquitetura
+
+O TaskFlow utiliza uma arquitetura organizada em três camadas:
+
+- **Front-end:** HTML e CSS.
+- **Back-end:** Python com Flask.
+- **Banco de dados:** SQLite.
+
+## Objetivo do projeto
+
+Desenvolver um sistema web funcional de gerenciamento de tarefas, aplicando conceitos de desenvolvimento front-end, back-end, integração com banco de dados e organização de software.
+
+## Repositório
+
+[GitHub - TaskFlow](https://github.com/HelamaFS/taskflow)
+
+**Projeto acadêmico — TaskFlow.**
