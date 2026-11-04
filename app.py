@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, redirect
 import sqlite3
 
@@ -27,17 +28,59 @@ def criar_banco():
 
 @app.route("/")
 def index():
+    filtro = request.args.get("filtro", "todas")
+
     conexao = conectar_banco()
 
-    tarefas = conexao.execute(
-        "SELECT * FROM tarefas ORDER BY id DESC"
-    ).fetchall()
+    # Estatísticas das tarefas
+    total = conexao.execute(
+        "SELECT COUNT(*) FROM tarefas"
+    ).fetchone()[0]
+
+    pendentes = conexao.execute(
+        "SELECT COUNT(*) FROM tarefas WHERE concluida = 0"
+    ).fetchone()[0]
+
+    concluidas = conexao.execute(
+        "SELECT COUNT(*) FROM tarefas WHERE concluida = 1"
+    ).fetchone()[0]
+
+    if total > 0:
+        percentual = round((concluidas / total) * 100)
+    else:
+        percentual = 0
+
+    # Filtros
+    if filtro == "pendentes":
+        tarefas = conexao.execute(
+            "SELECT * FROM tarefas WHERE concluida = 0 ORDER BY id DESC"
+        ).fetchall()
+
+    elif filtro == "concluidas":
+        tarefas = conexao.execute(
+            "SELECT * FROM tarefas WHERE concluida = 1 ORDER BY id DESC"
+        ).fetchall()
+
+    else:
+        filtro = "todas"
+        tarefas = conexao.execute(
+            "SELECT * FROM tarefas ORDER BY id DESC"
+        ).fetchall()
 
     conexao.close()
 
-    return render_template("index.html", tarefas=tarefas)
+    return render_template(
+        "index.html",
+        tarefas=tarefas,
+        filtro=filtro,
+        total=total,
+        pendentes=pendentes,
+        concluidas=concluidas,
+        percentual=percentual
+    )
 
 
+# Adicionar tarefa
 @app.route("/adicionar", methods=["POST"])
 def adicionar():
     descricao = request.form["descricao"]
@@ -56,6 +99,7 @@ def adicionar():
     return redirect("/")
 
 
+# Editar tarefa
 @app.route("/editar/<int:id>", methods=["POST"])
 def editar(id):
     descricao = request.form["descricao"]
@@ -74,6 +118,7 @@ def editar(id):
     return redirect("/")
 
 
+# Excluir tarefa
 @app.route("/excluir/<int:id>", methods=["POST"])
 def excluir(id):
     conexao = conectar_banco()
@@ -89,6 +134,7 @@ def excluir(id):
     return redirect("/")
 
 
+# Concluir ou reabrir tarefa
 @app.route("/concluir/<int:id>", methods=["POST"])
 def concluir(id):
     conexao = conectar_banco()

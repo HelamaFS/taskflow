@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -20,6 +21,34 @@
             Sistema de Controle de Tarefas
         </p>
 
+        <section class="painel-estatisticas">
+
+    <div class="card-estatistica">
+        <h3>Total de tarefas</h3>
+        <p>{{ total }}</p>
+    </div>
+
+    <div class="card-estatistica">
+        <h3>Pendentes</h3>
+        <p>{{ pendentes }}</p>
+    </div>
+
+    <div class="card-estatistica">
+        <h3>Concluídas</h3>
+        <p>{{ concluidas }}</p>
+    </div>
+
+    <div class="card-estatistica">
+        <h3>Progresso</h3>
+        <p>{{ percentual }}%</p>
+    </div>
+
+    <div class="barra-progresso">
+        <div class="progresso" style="width: {{ percentual }}%;"></div>
+    </div>
+
+</section>
+
         <form action="/adicionar" method="POST">
 
             <input
@@ -29,15 +58,30 @@
                 required
             >
 
-            <button type="submit">
-                Adicionar
-            </button>
+            <button type="submit">Adicionar</button>
 
         </form>
 
         <section class="tarefas">
 
             <h2>Minhas tarefas</h2>
+
+            <nav class="filtros">
+                <a href="{{ url_for('index', filtro='todas') }}"
+                   class="{% if filtro == 'todas' %}filtro-ativo{% endif %}">
+                    Todas
+                </a>
+
+                <a href="{{ url_for('index', filtro='pendentes') }}"
+                   class="{% if filtro == 'pendentes' %}filtro-ativo{% endif %}">
+                    Pendentes
+                </a>
+
+                <a href="{{ url_for('index', filtro='concluidas') }}"
+                   class="{% if filtro == 'concluidas' %}filtro-ativo{% endif %}">
+                    Concluídas
+                </a>
+            </nav>
 
             {% if tarefas %}
 
@@ -70,36 +114,19 @@
 
                         </form>
 
-                        <form
-                            action="/concluir/{{ tarefa['id'] }}"
-                            method="POST"
-                        >
+                        <form action="/concluir/{{ tarefa['id'] }}" method="POST">
 
                             {% if tarefa['concluida'] %}
-
-                                <button type="submit">
-                                    Reabrir
-                                </button>
-
+                                <button type="submit">Reabrir</button>
                             {% else %}
-
-                                <button type="submit">
-                                    Concluir
-                                </button>
-
+                                <button type="submit">Concluir</button>
                             {% endif %}
 
                         </form>
 
-                        <form
-                            action="/excluir/{{ tarefa['id'] }}"
-                            method="POST"
-                        >
+                        <form action="/excluir/{{ tarefa['id'] }}" method="POST">
 
-                            <button
-                                type="submit"
-                                class="btn-excluir"
-                            >
+                            <button type="submit" class="btn-excluir">
                                 Excluir
                             </button>
 
@@ -112,7 +139,7 @@
             {% else %}
 
                 <p class="vazio">
-                    Nenhuma tarefa cadastrada.
+                    Nenhuma tarefa encontrada neste filtro.
                 </p>
 
             {% endif %}
@@ -121,37 +148,34 @@
 
     </main>
 
-    
-<script>
-    const botoesEditar = document.querySelectorAll(".btn-editar");
+    <script>
+        const botoesEditar = document.querySelectorAll(".btn-editar");
 
-    botoesEditar.forEach(function (botao) {
+        botoesEditar.forEach(function (botao) {
 
-        botao.addEventListener("click", function () {
+            botao.addEventListener("click", function () {
 
-            const id = botao.dataset.id;
-            const campo = document.getElementById("tarefa-" + id);
-            const formulario = botao.closest("form");
+                const id = botao.dataset.id;
+                const campo = document.getElementById("tarefa-" + id);
+                const formulario = botao.closest("form");
 
-            if (campo.hasAttribute("readonly")) {
-                // Primeiro clique: habilita a edição
-                campo.removeAttribute("readonly");
-                campo.focus();
-                botao.textContent = "Salvar";
-
-            } else {
-                // Segundo clique: salva a alteração
-                if (campo.value.trim() !== "") {
-                    formulario.requestSubmit();
-                } else {
+                if (campo.hasAttribute("readonly")) {
+                    campo.removeAttribute("readonly");
                     campo.focus();
+                    botao.textContent = "Salvar";
+
+                } else {
+                    if (campo.value.trim() !== "") {
+                        formulario.requestSubmit();
+                    } else {
+                        campo.focus();
+                    }
                 }
-            }
+
+            });
 
         });
-
-    });
-</script>
+    </script>
 
 </body>
 
