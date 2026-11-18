@@ -1,13 +1,41 @@
-
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 import sqlite3
+
+import os
+import secrets
+import time
+import calendar as calendario_python
+from datetime import date
+from collections import defaultdict
 
 app = Flask(__name__)
 
+app.secret_key = os.environ.get("SECRET_KEY", "taskflow-chave-temporaria-altere-depois")
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    # Com HTTPS, ative: SESSION_COOKIE_SECURE=1
+    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE") == "1",
+)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "database.db")
+
+TAMANHO_MAX_DESCRICAO = 200
+TAMANHO_MIN_SENHA = 8
+
+MAX_FALHAS_LOGIN = 5
+JANELA_LOGIN_SEGUNDOS = 300
+falhas_login = defaultdict(list)
+
 
 def conectar_banco():
-    conexao = sqlite3.connect("database.db")
+    conexao = sqlite3.connect(DB_PATH)
     conexao.row_factory = sqlite3.Row
+    conexao.execute("PRAGMA foreign_keys = ON")
     return conexao
 
 
@@ -15,56 +43,260 @@ def criar_banco():
     conexao = conectar_banco()
 
     conexao.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            senha TEXT NOT NULL,
+            tema TEXT NOT NULL DEFAULT 'claro',
+            cor TEXT NOT NULL DEFAULT 'azul'
+        )
+    """)
+
+    conexao.execute("""
         CREATE TABLE IF NOT EXISTS tarefas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             descricao TEXT NOT NULL,
-            concluida INTEGER DEFAULT 0
+            concluida INTEGER DEFAULT 0,
+            data_entrega TEXT
         )
     """)
+
+    colunas = [
+        coluna["name"]
+        for coluna in conexao.execute("PRAGMA table_info(tarefas)").fetchall()
+    ]
+
+    if "usuario_id" not in colunas:
+        conexao.execute(
+            "ALTER TABLE tarefas ADD COLUMN usuario_id INTEGER "
+            "REFERENCES usuarios(id) ON DELETE CASCADE"
+        )
+
+    if "data_entrega" not in colunas:
+        conexao.execute("ALTER TABLE tarefas ADD COLUMN data_entrega TEXT")
+
+    colunas_usuarios = [
+        coluna["name"]
+        for coluna in conexao.execute("PRAGMA table_info(usuarios)").fetchall()
+    ]
+
+    if "tema" not in colunas_usuarios:
+        conexao.execute(
+            "ALTER TABLE usuarios ADD COLUMN tema TEXT NOT NULL DEFAULT 'claro'"
+        )
+
+    if "cor" not in colunas_usuarios:
+        conexao.execute(
+            "ALTER TABLE usuarios ADD COLUMN cor TEXT NOT NULL DEFAULT 'azul'"
+        )
 
     conexao.commit()
     conexao.close()
 
 
+criar_banco()
+
+
+def gerar_token_csrf():
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(32)
+    return session["csrf_token"]
+
+
+app.jinja_env.globals["csrf_token"] = gerar_token_csrf
+
+
+@app.before_request
+def proteger_csrf():
+    if request.method == "POST":
+        token_sessao = session.get("csrf_token", "")
+        token_form = request.form.get("csrf_token", "")
+        if not token_sessao or not secrets.compare_digest(token_sessao, token_form):
+            abort(400, description="Token CSRF inválido ou ausente.")
+
+
+@app.after_request
+def cabecalhos_seguranca(resposta):
+    resposta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    if os.environ.get("BLOQUEAR_IFRAME") == "1":
+        resposta.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    return resposta
+
+
+def login_obrigatorio(funcao):
+    @wraps(funcao)
+    def verificar_login(*args, **kwargs):
+        if "usuario_id" not in session:
+            return redirect(url_for("login"))
+        return funcao(*args, **kwargs)
+    return verificar_login
+
+
+def login_bloqueado(ip):
+    agora = time.time()
+    falhas_login[ip] = [t for t in falhas_login[ip] if agora - t < JANELA_LOGIN_SEGUNDOS]
+    return len(falhas_login[ip]) >= MAX_FALHAS_LOGIN
+
+
+def iniciar_sessao(usuario_id, nome):
+    session.clear()  # evita fixação de sessão
+    session["usuario_id"] = usuario_id
+    session["nome"] = nome
+    gerar_token_csrf()
+
+
+@app.route("/cadastro", methods=["GET", "POST"])
+def cadastro():
+    if "usuario_id" in session:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        senha = request.form.get("senha", "")
+        confirmar_senha = request.form.get("confirmar_senha", "")
+
+        if not nome or not email or not senha:
+            flash("Preencha todos os campos.")
+            return render_template("cadastro.html", nome=nome, email=email)
+
+        if len(nome) > 100 or len(email) > 254:
+            flash("Nome ou e-mail muito longo.")
+            return render_template("cadastro.html", nome=nome, email=email)
+
+        if senha != confirmar_senha:
+            flash("As senhas não são iguais.")
+            return render_template("cadastro.html", nome=nome, email=email)
+
+        if len(senha) < TAMANHO_MIN_SENHA:
+            flash(f"A senha precisa ter pelo menos {TAMANHO_MIN_SENHA} caracteres.")
+            return render_template("cadastro.html", nome=nome, email=email)
+
+        conexao = conectar_banco()
+
+        try:
+            cursor = conexao.execute(
+                "INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)",
+                (nome, email, generate_password_hash(senha))
+            )
+
+            usuario_id = cursor.lastrowid
+
+            # As tarefas antigas ficam associadas à primeira conta criada.
+            total_usuarios = conexao.execute(
+                "SELECT COUNT(*) FROM usuarios"
+            ).fetchone()[0]
+
+            if total_usuarios == 1:
+                conexao.execute(
+                    "UPDATE tarefas SET usuario_id = ? WHERE usuario_id IS NULL",
+                    (usuario_id,)
+                )
+
+            conexao.commit()
+            iniciar_sessao(usuario_id, nome)
+
+            return redirect(url_for("index"))
+
+        except sqlite3.IntegrityError:
+            flash("Este e-mail já está cadastrado.")
+            return render_template("cadastro.html", nome=nome, email=email)
+
+        finally:
+            conexao.close()
+
+    return render_template("cadastro.html", nome="", email="")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if "usuario_id" in session:
+        return redirect(url_for("index"))
+
+    email = ""
+
+    if request.method == "POST":
+        ip = request.remote_addr or "desconhecido"
+        email = request.form.get("email", "").strip().lower()
+        senha = request.form.get("senha", "")
+
+        if login_bloqueado(ip):
+            flash("Muitas tentativas. Aguarde alguns minutos e tente de novo.")
+            return render_template("login.html", email=email), 429
+
+        conexao = conectar_banco()
+        usuario = conexao.execute(
+            "SELECT * FROM usuarios WHERE email = ?",
+            (email,)
+        ).fetchone()
+        conexao.close()
+
+        if usuario and check_password_hash(usuario["senha"], senha):
+            falhas_login.pop(ip, None)
+            iniciar_sessao(usuario["id"], usuario["nome"])
+            return redirect(url_for("index"))
+
+        falhas_login[ip].append(time.time())
+        flash("E-mail ou senha incorretos.")
+
+    return render_template("login.html", email=email)
+
+
+@app.route("/sair", methods=["POST"])
+def sair():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @app.route("/")
+@login_obrigatorio
 def index():
     filtro = request.args.get("filtro", "todas")
+    usuario_id = session["usuario_id"]
 
     conexao = conectar_banco()
 
-    # Estatísticas das tarefas
+    usuario = conexao.execute(
+        "SELECT tema, cor FROM usuarios WHERE id = ?",
+        (usuario_id,)
+    ).fetchone()
+
+    tema = usuario["tema"] if usuario else "claro"
+    cor = usuario["cor"] if usuario else "azul"
+
     total = conexao.execute(
-        "SELECT COUNT(*) FROM tarefas"
+        "SELECT COUNT(*) FROM tarefas WHERE usuario_id = ?",
+        (usuario_id,)
     ).fetchone()[0]
 
     pendentes = conexao.execute(
-        "SELECT COUNT(*) FROM tarefas WHERE concluida = 0"
+        "SELECT COUNT(*) FROM tarefas WHERE usuario_id = ? AND concluida = 0",
+        (usuario_id,)
     ).fetchone()[0]
 
     concluidas = conexao.execute(
-        "SELECT COUNT(*) FROM tarefas WHERE concluida = 1"
+        "SELECT COUNT(*) FROM tarefas WHERE usuario_id = ? AND concluida = 1",
+        (usuario_id,)
     ).fetchone()[0]
 
-    if total > 0:
-        percentual = round((concluidas / total) * 100)
-    else:
-        percentual = 0
+    percentual = round((concluidas / total) * 100) if total > 0 else 0
 
-    # Filtros
     if filtro == "pendentes":
         tarefas = conexao.execute(
-            "SELECT * FROM tarefas WHERE concluida = 0 ORDER BY id DESC"
+            "SELECT * FROM tarefas WHERE usuario_id = ? AND concluida = 0 ORDER BY id DESC",
+            (usuario_id,)
         ).fetchall()
-
     elif filtro == "concluidas":
         tarefas = conexao.execute(
-            "SELECT * FROM tarefas WHERE concluida = 1 ORDER BY id DESC"
+            "SELECT * FROM tarefas WHERE usuario_id = ? AND concluida = 1 ORDER BY id DESC",
+            (usuario_id,)
         ).fetchall()
-
     else:
         filtro = "todas"
         tarefas = conexao.execute(
-            "SELECT * FROM tarefas ORDER BY id DESC"
+            "SELECT * FROM tarefas WHERE usuario_id = ? ORDER BY id DESC",
+            (usuario_id,)
         ).fetchall()
 
     conexao.close()
@@ -76,89 +308,217 @@ def index():
         total=total,
         pendentes=pendentes,
         concluidas=concluidas,
-        percentual=percentual
+        percentual=percentual,
+        nome=session["nome"],
+        max_descricao=TAMANHO_MAX_DESCRICAO,
+        hoje=date.today().isoformat(),
+        tema=tema,
+        cor=cor
     )
 
 
-# Adicionar tarefa
-@app.route("/adicionar", methods=["POST"])
-def adicionar():
-    descricao = request.form["descricao"]
+@app.route("/calendario")
+@login_obrigatorio
+def calendario():
+    hoje = date.today()
+    try:
+        ano = int(request.args.get("ano", hoje.year))
+        mes = int(request.args.get("mes", hoje.month))
+        if mes < 1 or mes > 12 or ano < 2000 or ano > 2100:
+            raise ValueError
+    except (TypeError, ValueError):
+        ano, mes = hoje.year, hoje.month
 
-    if descricao.strip():
-        conexao = conectar_banco()
+    primeiro_dia_semana, quantidade_dias = calendario_python.monthrange(ano, mes)
+    semanas = calendario_python.Calendar(firstweekday=0).monthdayscalendar(ano, mes)
 
-        conexao.execute(
-            "INSERT INTO tarefas (descricao, concluida) VALUES (?, ?)",
-            (descricao, 0)
-        )
-
-        conexao.commit()
-        conexao.close()
-
-    return redirect("/")
-
-
-# Editar tarefa
-@app.route("/editar/<int:id>", methods=["POST"])
-def editar(id):
-    descricao = request.form["descricao"]
-
-    if descricao.strip():
-        conexao = conectar_banco()
-
-        conexao.execute(
-            "UPDATE tarefas SET descricao = ? WHERE id = ?",
-            (descricao, id)
-        )
-
-        conexao.commit()
-        conexao.close()
-
-    return redirect("/")
-
-
-# Excluir tarefa
-@app.route("/excluir/<int:id>", methods=["POST"])
-def excluir(id):
     conexao = conectar_banco()
+    usuario = conexao.execute(
+        "SELECT tema, cor FROM usuarios WHERE id = ?",
+        (session["usuario_id"],)
+    ).fetchone()
+    tarefas = conexao.execute(
+        "SELECT id, descricao, concluida, data_entrega FROM tarefas "
+        "WHERE usuario_id = ? AND data_entrega IS NOT NULL "
+        "AND strftime('%Y-%m', data_entrega) = ? ORDER BY data_entrega, id",
+        (session["usuario_id"], f"{ano:04d}-{mes:02d}")
+    ).fetchall()
+    conexao.close()
 
-    conexao.execute(
-        "DELETE FROM tarefas WHERE id = ?",
-        (id,)
+    tarefas_por_dia = {}
+    for tarefa in tarefas:
+        dia = int(tarefa["data_entrega"][8:10])
+        tarefas_por_dia.setdefault(dia, []).append(tarefa)
+
+    mes_anterior = 12 if mes == 1 else mes - 1
+    ano_anterior = ano - 1 if mes == 1 else ano
+    proximo_mes = 1 if mes == 12 else mes + 1
+    proximo_ano = ano + 1 if mes == 12 else ano
+
+    nomes_meses = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ]
+
+    return render_template(
+        "calendario.html",
+        nome=session["nome"], tema=usuario["tema"] if usuario else "claro",
+        cor=usuario["cor"] if usuario else "azul", ano=ano, mes=mes,
+        nome_mes=nomes_meses[mes - 1], semanas=semanas,
+        tarefas_por_dia=tarefas_por_dia, hoje=hoje.isoformat(),
+        mes_anterior=mes_anterior, ano_anterior=ano_anterior,
+        proximo_mes=proximo_mes, proximo_ano=proximo_ano
     )
 
+
+@app.route("/aparencia", methods=["POST"])
+@login_obrigatorio
+def salvar_aparencia():
+    tema = request.form.get("tema", "claro")
+    cor = request.form.get("cor", "azul")
+
+    temas_permitidos = {"claro", "escuro"}
+    cores_permitidas = {"azul", "roxo", "verde", "laranja"}
+
+    if tema not in temas_permitidos or cor not in cores_permitidas:
+        flash("Seleção de aparência inválida.")
+        return redirect(url_for("index"))
+
+    conexao = conectar_banco()
+    conexao.execute(
+        "UPDATE usuarios SET tema = ?, cor = ? WHERE id = ?",
+        (tema, cor, session["usuario_id"])
+    )
     conexao.commit()
     conexao.close()
 
-    return redirect("/")
+    flash("Aparência atualizada com sucesso!")
+    return redirect(url_for("index"))
 
 
-# Concluir ou reabrir tarefa
+@app.route("/adicionar", methods=["POST"])
+@login_obrigatorio
+def adicionar():
+    descricao = request.form.get("descricao", "").strip()
+    data_entrega = request.form.get("data_entrega", "").strip() or None
+
+    try:
+        if data_entrega:
+            date.fromisoformat(data_entrega)
+    except ValueError:
+        flash("Informe uma data de entrega válida.")
+        return redirect(url_for("index"))
+
+    if not descricao:
+        flash("Digite o texto da tarefa.")
+    elif len(descricao) > TAMANHO_MAX_DESCRICAO:
+        flash(f"A tarefa pode ter no máximo {TAMANHO_MAX_DESCRICAO} caracteres.")
+    else:
+        conexao = conectar_banco()
+        conexao.execute(
+            "INSERT INTO tarefas (descricao, concluida, usuario_id, data_entrega) VALUES (?, ?, ?, ?)",
+            (descricao, 0, session["usuario_id"], data_entrega)
+        )
+        conexao.commit()
+        conexao.close()
+
+    return redirect(request.referrer or url_for("index"))
+
+
+@app.route("/editar/<int:id>", methods=["POST"])
+@login_obrigatorio
+def editar(id):
+    destino = request.referrer or url_for("index")
+
+    # A edição só é aceita quando o formulário foi desbloqueado pelo botão Editar.
+    if request.form.get("modo_edicao") != "1":
+        flash("Clique em Editar antes de alterar a tarefa.")
+        return redirect(destino)
+
+    descricao = request.form.get("descricao", "").strip()
+    data_entrega = request.form.get("data_entrega", "").strip() or None
+
+    conexao = conectar_banco()
+    tarefa = conexao.execute(
+        "SELECT concluida FROM tarefas WHERE id = ? AND usuario_id = ?",
+        (id, session["usuario_id"])
+    ).fetchone()
+
+    if not tarefa:
+        conexao.close()
+        return redirect(destino)
+
+    if tarefa["concluida"]:
+        conexao.close()
+        flash("Reabra a tarefa antes de editá-la.")
+        return redirect(destino)
+
+    try:
+        if data_entrega:
+            date.fromisoformat(data_entrega)
+    except ValueError:
+        conexao.close()
+        flash("Informe uma data de entrega válida.")
+        return redirect(destino)
+
+    if not descricao:
+        flash("A tarefa não pode ficar vazia.")
+    elif len(descricao) > TAMANHO_MAX_DESCRICAO:
+        flash(f"A tarefa pode ter no máximo {TAMANHO_MAX_DESCRICAO} caracteres.")
+    else:
+        conexao.execute(
+            "UPDATE tarefas SET descricao = ?, data_entrega = ? "
+            "WHERE id = ? AND usuario_id = ? AND concluida = 0",
+            (descricao, data_entrega, id, session["usuario_id"])
+        )
+        conexao.commit()
+        flash("Tarefa atualizada com sucesso!")
+
+    conexao.close()
+    return redirect(destino)
+
+
+@app.route("/excluir/<int:id>", methods=["POST"])
+@login_obrigatorio
+def excluir(id):
+    conexao = conectar_banco()
+    conexao.execute(
+        "DELETE FROM tarefas WHERE id = ? AND usuario_id = ?",
+        (id, session["usuario_id"])
+    )
+    conexao.commit()
+    conexao.close()
+
+    return redirect(request.referrer or url_for("index"))
+
+
 @app.route("/concluir/<int:id>", methods=["POST"])
+@login_obrigatorio
 def concluir(id):
     conexao = conectar_banco()
 
     tarefa = conexao.execute(
-        "SELECT concluida FROM tarefas WHERE id = ?",
-        (id,)
+        "SELECT concluida FROM tarefas WHERE id = ? AND usuario_id = ?",
+        (id, session["usuario_id"])
     ).fetchone()
 
     if tarefa:
         novo_status = 0 if tarefa["concluida"] else 1
-
         conexao.execute(
-            "UPDATE tarefas SET concluida = ? WHERE id = ?",
-            (novo_status, id)
+            "UPDATE tarefas SET concluida = ? WHERE id = ? AND usuario_id = ?",
+            (novo_status, id, session["usuario_id"])
         )
-
         conexao.commit()
 
     conexao.close()
-
-    return redirect("/")
+    return redirect(request.referrer or url_for("index"))
 
 
 if __name__ == "__main__":
-    criar_banco()
-    app.run(debug=True)
+    porta = int(os.environ.get("PORT", 5000))
+    print(f"[TaskFlow] Abra no navegador: http://127.0.0.1:{porta}", flush=True)
+    app.run(
+        host="127.0.0.1",
+        port=porta,
+        debug=os.environ.get("FLASK_DEBUG") == "1"
+    )

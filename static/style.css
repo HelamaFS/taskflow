@@ -35,6 +35,7 @@ form {
 
 input {
     flex: 1;
+    min-width: 0;
     padding: 14px;
     border: 1px solid #ccc;
     border-radius: 6px;
@@ -47,7 +48,48 @@ button {
     border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
+    background: #e3e3e3;
+    color: #222;
 }
+
+button:hover {
+    filter: brightness(0.95);
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+    outline: 2px solid #1a73e8;
+    outline-offset: 2px;
+}
+
+/* ---------- botões com cor ---------- */
+
+.btn-primario {
+    background: #333;
+    color: white;
+}
+
+.btn-concluir {
+    background: #28a745;
+    color: white;
+}
+
+.btn-reabrir {
+    background: #f0ad4e;
+    color: #222;
+}
+
+.btn-excluir {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-editar {
+    background: #e3e3e3;
+}
+
+/* ---------- lista de tarefas ---------- */
 
 .tarefas {
     background: white;
@@ -60,14 +102,37 @@ button {
 }
 
 .tarefa {
-    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 0;
     border-bottom: 1px solid #ddd;
 }
 
-.vazio {
-    color: #777;
-    text-align: center;
+.tarefa form {
+    margin-bottom: 0;
 }
+
+.tarefa .form-editar {
+    flex: 1;
+    align-items: center;
+}
+
+.tarefa button {
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.tarefa input[readonly] {
+    border-color: transparent;
+    background: transparent;
+    cursor: default;
+}
+
+.tarefa input[readonly]:focus-visible {
+    outline: none;
+}
+
 .tarefa.concluida {
     opacity: 0.7;
 }
@@ -75,6 +140,23 @@ button {
 .tarefa.concluida input {
     text-decoration: line-through;
 }
+
+.vazio {
+    color: #777;
+    text-align: center;
+}
+
+@media (max-width: 560px) {
+    .tarefa {
+        flex-wrap: wrap;
+    }
+
+    .tarefa .form-editar {
+        flex-basis: 100%;
+    }
+}
+
+/* ---------- filtros ---------- */
 
 .filtros {
     display: flex;
@@ -100,6 +182,8 @@ button {
     background: #333333;
     color: white;
 }
+
+/* ---------- estatísticas ---------- */
 
 .painel-estatisticas {
     display: grid;
@@ -150,4 +234,332 @@ button {
 .barra-progresso::-moz-progress-bar {
     background: #28a745;
     border-radius: 10px;
+}
+
+/* ---------- login e cadastro ---------- */
+
+.caixa-autenticacao {
+    max-width: 450px;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.form-autenticacao {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 25px;
+    margin-bottom: 0;
+}
+
+.form-autenticacao label {
+    font-size: 14px;
+    color: #444;
+    margin-top: 8px;
+}
+
+.form-autenticacao input {
+    flex: none;
+    width: 100%;
+}
+
+.form-autenticacao button {
+    background: #333;
+    color: white;
+    margin-top: 16px;
+}
+
+.texto-autenticacao {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.texto-autenticacao a {
+    color: #333;
+    font-weight: bold;
+}
+
+.mensagem {
+    background: #ffe8e8;
+    color: #a00000;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 15px 0;
+    text-align: center;
+}
+
+/* ---------- cabeçalho do usuário ---------- */
+
+.cabecalho-usuario {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #555;
+}
+
+.form-sair {
+    margin: 0;
+}
+
+.link-sair {
+    background: none;
+    padding: 6px 10px;
+    color: #333;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+
+/* ---------- personalização de aparência (AC4) ---------- */
+
+:root {
+    --cor-principal: #2563eb;
+    --cor-principal-hover: #1d4ed8;
+    --fundo: #f4f6fb;
+    --superficie: #ffffff;
+    --superficie-secundaria: #eef2f7;
+    --texto: #202938;
+    --texto-suave: #667085;
+    --borda: #d9e0ea;
+    --campo: #ffffff;
+}
+
+body[data-cor="azul"] { --cor-principal: #2563eb; --cor-principal-hover: #1d4ed8; }
+body[data-cor="roxo"] { --cor-principal: #7c3aed; --cor-principal-hover: #6d28d9; }
+body[data-cor="verde"] { --cor-principal: #16a34a; --cor-principal-hover: #15803d; }
+body[data-cor="laranja"] { --cor-principal: #ea580c; --cor-principal-hover: #c2410c; }
+
+body[data-tema="escuro"] {
+    --fundo: #111827;
+    --superficie: #1f2937;
+    --superficie-secundaria: #374151;
+    --texto: #f3f4f6;
+    --texto-suave: #c0c8d4;
+    --borda: #4b5563;
+    --campo: #273449;
+}
+
+body {
+    background: var(--fundo);
+    color: var(--texto);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.container { color: var(--texto); }
+.subtitulo, .cabecalho-usuario { color: var(--texto-suave); }
+
+.tarefas, .caixa-autenticacao, .painel-aparencia {
+    background: var(--superficie);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+}
+
+.card-estatistica, .filtros a {
+    background: var(--superficie-secundaria);
+    color: var(--texto);
+}
+
+input, select {
+    background: var(--campo);
+    color: var(--texto);
+    border-color: var(--borda);
+}
+
+.tarefa { border-bottom-color: var(--borda); }
+.tarefa input[readonly] { color: var(--texto); }
+.form-autenticacao label, .texto-autenticacao a { color: var(--texto); }
+.texto-autenticacao a { color: var(--cor-principal); }
+.link-sair { color: var(--cor-principal); }
+
+.btn-primario, .filtros a.filtro-ativo, .form-autenticacao button {
+    background: var(--cor-principal);
+    color: #ffffff;
+}
+.btn-primario:hover, .filtros a.filtro-ativo:hover,
+.form-autenticacao button:hover {
+    background: var(--cor-principal-hover);
+}
+
+.painel-aparencia {
+    padding: 18px;
+    margin: 20px 0;
+    border-radius: 10px;
+}
+.painel-aparencia h2 {
+    font-size: 18px;
+    margin-bottom: 14px;
+}
+.form-aparencia {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0;
+}
+.form-aparencia label {
+    font-size: 14px;
+    color: var(--texto-suave);
+}
+.form-aparencia select {
+    min-width: 110px;
+    padding: 10px;
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    font-size: 14px;
+}
+.form-aparencia button {
+    padding: 11px 14px;
+    font-size: 14px;
+}
+
+.mensagem {
+    background: #ffe8e8;
+    color: #a00000;
+}
+
+@media (max-width: 560px) {
+    .form-aparencia {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .form-aparencia select,
+    .form-aparencia button {
+        width: 100%;
+    }
+}
+
+
+/* ---------- calendário e prazos (AC4) ---------- */
+.atalho-calendario { text-align: center; margin: -14px 0 22px; }
+.btn-calendario { display: inline-block; padding: 9px 14px; border-radius: 7px; background: var(--cor-principal); color: #fff; text-decoration: none; font-size: 14px; }
+.btn-calendario:hover { background: var(--cor-principal-hover); }
+.form-adicionar { align-items: center; flex-wrap: wrap; }
+.form-adicionar input[type="date"] { flex: 0 1 155px; }
+.rotulo-data { color: var(--texto-suave); font-size: 13px; }
+.form-editar input[type="date"] { flex: 0 1 145px; padding: 10px; font-size: 13px; }
+.calendario-painel { background: var(--superficie); color: var(--texto); border: 1px solid var(--borda); border-radius: 12px; padding: 18px; }
+.calendario-navegacao { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.calendario-navegacao h2 { font-size: 21px; }
+.calendario-navegacao a { color: var(--cor-principal); text-decoration: none; font-size: 32px; padding: 0 12px; }
+.calendario-grade { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.calendario-cabecalho-dia { text-align: center; font-weight: bold; color: var(--texto-suave); padding: 8px 2px; font-size: 13px; }
+.calendario-dia { min-height: 105px; min-width: 0; padding: 7px; border: 1px solid var(--borda); border-radius: 7px; background: var(--superficie-secundaria); overflow-wrap: anywhere; }
+.calendario-dia.vazio-dia { background: transparent; border-color: transparent; }
+.calendario-dia.dia-hoje { border: 2px solid var(--cor-principal); }
+.numero-dia { display: block; font-weight: bold; margin-bottom: 6px; }
+.evento-calendario { padding: 4px 5px; margin-top: 4px; border-radius: 4px; color: #fff; font-size: 11px; line-height: 1.3; }
+.evento-pendente { background: #d97706; }
+.evento-concluido { background: #16a34a; text-decoration: line-through; }
+.legenda-calendario { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; color: var(--texto-suave); font-size: 13px; }
+.legenda-calendario span { display: flex; align-items: center; gap: 6px; }
+.legenda-calendario i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.legenda-pendente { background: #d97706; }
+.legenda-concluida { background: #16a34a; }
+.dica-calendario { color: var(--texto-suave); text-align: center; margin-top: 14px; font-size: 13px; }
+@media (max-width: 600px) {
+    .calendario-painel { padding: 9px; }
+    .calendario-grade { gap: 2px; }
+    .calendario-dia { min-height: 75px; padding: 4px 2px; }
+    .calendario-cabecalho-dia { font-size: 11px; }
+    .evento-calendario { font-size: 9px; padding: 3px; }
+    .form-adicionar input[type="date"] { flex: 1 1 100%; width: 100%; }
+    .form-editar input[type="date"] { flex-basis: 100%; }
+}
+
+
+/* ---------- ajustes do painel de aparência ---------- */
+.cabecalho-usuario {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.acoes-cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+}
+.area-aparencia {
+    position: relative;
+}
+.btn-abrir-aparencia {
+    padding: 9px 13px;
+    background: var(--superficie);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    font-size: 14px;
+}
+.painel-aparencia {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    z-index: 1000;
+    width: min(340px, calc(100vw - 32px));
+    margin: 0;
+    padding: 17px;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+.painel-aparencia[hidden] {
+    display: none !important;
+}
+.topo-painel-aparencia {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.topo-painel-aparencia h2 {
+    font-size: 18px;
+    margin: 0;
+}
+.btn-fechar-aparencia {
+    padding: 2px 9px;
+    font-size: 24px;
+    line-height: 1.2;
+}
+.form-aparencia {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 0;
+}
+.form-aparencia select, .form-aparencia button {
+    width: 100%;
+}
+.form-editar input[type="date"]:disabled {
+    opacity: 0.78;
+    cursor: not-allowed;
+}
+@media (max-width: 560px) {
+    .cabecalho-usuario { align-items: flex-start; }
+    .acoes-cabecalho { gap: 8px; }
+    .painel-aparencia { right: -45px; }
+}
+
+
+/* Ajustes finais: painel de aparência posicionado pelo botão no cabeçalho. */
+.painel-aparencia {
+    z-index: 9999;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+}
+
+/* Tarefas concluídas exibem a data como texto, sem abrir seletor de calendário. */
+.data-entrega-bloqueada {
+    display: inline-block;
+    min-width: 120px;
+    padding: 8px 10px;
+    color: var(--texto-suave);
+    background: var(--superficie-secundaria);
+    border: 1px solid var(--borda);
+    border-radius: 5px;
+    font-size: 13px;
+    text-align: center;
+    cursor: not-allowed;
 }

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário - TaskFlow</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-tema="{{ tema }}" data-cor="{{ cor }}">
+    <main class="container">
+        <header class="cabecalho-usuario">
+            <span>Olá, {{ nome }}!</span>
+            <a href="{{ url_for('index') }}" class="btn-calendario">← Voltar às tarefas</a>
+        </header>
+
+        <h1>Calendário</h1>
+        <p class="subtitulo">Organize suas tarefas por data de entrega</p>
+
+        <section class="calendario-painel">
+            <div class="calendario-navegacao">
+                <a href="{{ url_for('calendario', mes=mes_anterior, ano=ano_anterior) }}" aria-label="Mês anterior">‹</a>
+                <h2>{{ nome_mes }} de {{ ano }}</h2>
+                <a href="{{ url_for('calendario', mes=proximo_mes, ano=proximo_ano) }}" aria-label="Próximo mês">›</a>
+            </div>
+
+            <div class="calendario-grade">
+                {% for dia_semana in ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'] %}
+                    <div class="calendario-cabecalho-dia">{{ dia_semana }}</div>
+                {% endfor %}
+
+                {% for semana in semanas %}
+                    {% for numero_dia in semana %}
+                        {% if numero_dia == 0 %}
+                            <div class="calendario-dia vazio-dia"></div>
+                        {% else %}
+                            <div class="calendario-dia {% if '%04d-%02d-%02d'|format(ano, mes, numero_dia) == hoje %}dia-hoje{% endif %}">
+                                <span class="numero-dia">{{ numero_dia }}</span>
+                                {% for tarefa in tarefas_por_dia.get(numero_dia, []) %}
+                                    <div class="evento-calendario {% if tarefa['concluida'] %}evento-concluido{% else %}evento-pendente{% endif %}">
+                                        {{ tarefa['descricao'] }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+
+            <div class="legenda-calendario">
+                <span><i class="legenda-pendente"></i> Pendente</span>
+                <span><i class="legenda-concluida"></i> Concluída</span>
+            </div>
+        </section>
+        <p class="dica-calendario">Para adicionar ou alterar uma data, volte à lista de tarefas e use o campo “Entrega”.</p>
+    </main>
+</body>
+</html>

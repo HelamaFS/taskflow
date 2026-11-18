@@ -1,182 +1,267 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>TaskFlow</title>
-
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
-<body>
-
+<body data-tema="{{ tema }}" data-cor="{{ cor }}">
     <main class="container">
+        <header class="cabecalho-usuario">
+            <span>Olá, {{ nome }}!</span>
+            <div class="acoes-cabecalho">
+                <div class="area-aparencia">
+                    <button type="button" class="btn-abrir-aparencia"
+                            id="btnAbrirAparencia" aria-expanded="false"
+                            aria-controls="painelAparencia">
+                        <span aria-hidden="true">⚙</span> Aparência
+                    </button>
+
+                    <section class="painel-aparencia" id="painelAparencia"
+                             aria-label="Ajustes visuais" hidden>
+                        <div class="topo-painel-aparencia">
+                            <h2>Ajustes visuais</h2>
+                            <button type="button" id="btnFecharAparencia"
+                                    class="btn-fechar-aparencia" aria-label="Fechar ajustes visuais">×</button>
+                        </div>
+                        <form action="{{ url_for('salvar_aparencia') }}" method="POST" class="form-aparencia">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                            <label for="tema">Tema</label>
+                            <select name="tema" id="tema">
+                                <option value="claro" {% if tema == 'claro' %}selected{% endif %}>Claro</option>
+                                <option value="escuro" {% if tema == 'escuro' %}selected{% endif %}>Escuro</option>
+                            </select>
+
+                            <label for="cor">Cor principal</label>
+                            <select name="cor" id="cor">
+                                <option value="azul" {% if cor == 'azul' %}selected{% endif %}>Azul</option>
+                                <option value="roxo" {% if cor == 'roxo' %}selected{% endif %}>Roxo</option>
+                                <option value="verde" {% if cor == 'verde' %}selected{% endif %}>Verde</option>
+                                <option value="laranja" {% if cor == 'laranja' %}selected{% endif %}>Laranja</option>
+                            </select>
+
+                            <button type="submit" class="btn-primario">Salvar aparência</button>
+                        </form>
+                    </section>
+                </div>
+
+                <form action="{{ url_for('sair') }}" method="POST" class="form-sair">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="link-sair">Sair</button>
+                </form>
+            </div>
+        </header>
 
         <h1>TaskFlow</h1>
+        <p class="subtitulo">Sistema de Controle de Tarefas</p>
+        <div class="atalho-calendario">
+            <a href="{{ url_for('calendario') }}" class="btn-calendario">📅 Ver calendário</a>
+        </div>
 
-        <p class="subtitulo">
-            Sistema de Controle de Tarefas
-        </p>
+
+
+        {% with mensagens = get_flashed_messages() %}
+            {% for mensagem in mensagens %}
+                <p class="mensagem">{{ mensagem }}</p>
+            {% endfor %}
+        {% endwith %}
 
         <section class="painel-estatisticas">
+            <div class="card-estatistica">
+                <h3>Total de tarefas</h3>
+                <p>{{ total }}</p>
+            </div>
+            <div class="card-estatistica">
+                <h3>Pendentes</h3>
+                <p>{{ pendentes }}</p>
+            </div>
+            <div class="card-estatistica">
+                <h3>Concluídas</h3>
+                <p>{{ concluidas }}</p>
+            </div>
+            <div class="card-estatistica">
+                <h3>Progresso</h3>
+                <p>{{ percentual }}%</p>
+            </div>
+            <progress class="barra-progresso"
+                      value="{{ concluidas }}"
+                      max="{{ total if total > 0 else 1 }}"
+                      aria-label="Progresso das tarefas">
+            </progress>
+        </section>
 
-    <div class="card-estatistica">
-        <h3>Total de tarefas</h3>
-        <p>{{ total }}</p>
-    </div>
-
-    <div class="card-estatistica">
-        <h3>Pendentes</h3>
-        <p>{{ pendentes }}</p>
-    </div>
-
-    <div class="card-estatistica">
-        <h3>Concluídas</h3>
-        <p>{{ concluidas }}</p>
-    </div>
-
-    <div class="card-estatistica">
-        <h3>Progresso</h3>
-        <p>{{ percentual }}%</p>
-    </div>
-
-    <div class="barra-progresso">
-        <div class="progresso" style="width: {{ percentual }}%;"></div>
-    </div>
-
-</section>
-
-        <form action="/adicionar" method="POST">
-
-            <input
-                type="text"
-                name="descricao"
-                placeholder="Digite uma nova tarefa..."
-                required
-            >
-
-            <button type="submit">Adicionar</button>
-
+        <form action="{{ url_for('adicionar') }}" method="POST" class="form-adicionar">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="descricao"
+                   placeholder="Digite uma nova tarefa..."
+                   aria-label="Nova tarefa"
+                   maxlength="{{ max_descricao }}" required>
+            <label class="rotulo-data" for="data_entrega_nova">Entrega:</label>
+            <input type="date" id="data_entrega_nova" name="data_entrega"
+                   aria-label="Data de entrega" min="{{ hoje }}">
+            <button type="submit" class="btn-primario">Adicionar</button>
         </form>
 
         <section class="tarefas">
-
             <h2>Minhas tarefas</h2>
 
             <nav class="filtros">
                 <a href="{{ url_for('index', filtro='todas') }}"
-                   class="{% if filtro == 'todas' %}filtro-ativo{% endif %}">
-                    Todas
-                </a>
+                   class="{% if filtro == 'todas' %}filtro-ativo{% endif %}">Todas</a>
 
                 <a href="{{ url_for('index', filtro='pendentes') }}"
-                   class="{% if filtro == 'pendentes' %}filtro-ativo{% endif %}">
-                    Pendentes
-                </a>
+                   class="{% if filtro == 'pendentes' %}filtro-ativo{% endif %}">Pendentes</a>
 
                 <a href="{{ url_for('index', filtro='concluidas') }}"
-                   class="{% if filtro == 'concluidas' %}filtro-ativo{% endif %}">
-                    Concluídas
-                </a>
+                   class="{% if filtro == 'concluidas' %}filtro-ativo{% endif %}">Concluídas</a>
             </nav>
 
             {% if tarefas %}
-
                 {% for tarefa in tarefas %}
-
                     <div class="tarefa {% if tarefa['concluida'] %}concluida{% endif %}">
-
-                        <form
-                            action="/editar/{{ tarefa['id'] }}"
-                            method="POST"
-                            class="form-editar"
-                        >
-
-                            <input
-                                type="text"
-                                name="descricao"
-                                value="{{ tarefa['descricao'] }}"
-                                id="tarefa-{{ tarefa['id'] }}"
-                                readonly
-                                required
-                            >
-
-                            <button
-                                type="button"
-                                class="btn-editar"
-                                data-id="{{ tarefa['id'] }}"
-                            >
-                                Editar
-                            </button>
-
-                        </form>
-
-                        <form action="/concluir/{{ tarefa['id'] }}" method="POST">
-
+                        <form action="{{ url_for('editar', id=tarefa['id']) }}"
+                              method="POST" class="form-editar">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="modo_edicao" value="0" class="modo-edicao">
+                            <input type="text" name="descricao"
+                                   value="{{ tarefa['descricao'] }}"
+                                   id="tarefa-{{ tarefa['id'] }}"
+                                   aria-label="Descrição da tarefa"
+                                   maxlength="{{ max_descricao }}"
+                                   readonly required>
                             {% if tarefa['concluida'] %}
-                                <button type="submit">Reabrir</button>
+                                <span class="data-entrega-bloqueada" aria-label="Data de entrega">
+                                    {% if tarefa['data_entrega'] %}
+                                        {{ tarefa['data_entrega'][8:10] }}/{{ tarefa['data_entrega'][5:7] }}/{{ tarefa['data_entrega'][0:4] }}
+                                    {% else %}
+                                        Sem data
+                                    {% endif %}
+                                </span>
                             {% else %}
-                                <button type="submit">Concluir</button>
+                                <input type="date" name="data_entrega"
+                                       value="{{ tarefa['data_entrega'] or '' }}"
+                                       aria-label="Data de entrega da tarefa"
+                                       disabled>
                             {% endif %}
 
+                            {% if not tarefa['concluida'] %}
+                                <button type="button" class="btn-editar"
+                                        data-id="{{ tarefa['id'] }}">Editar</button>
+                            {% endif %}
                         </form>
 
-                        <form action="/excluir/{{ tarefa['id'] }}" method="POST">
-
-                            <button type="submit" class="btn-excluir">
-                                Excluir
-                            </button>
-
+                        <form action="{{ url_for('concluir', id=tarefa['id']) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {% if tarefa['concluida'] %}
+                                <button type="submit" class="btn-reabrir">Reabrir</button>
+                            {% else %}
+                                <button type="submit" class="btn-concluir">Concluir</button>
+                            {% endif %}
                         </form>
 
+                        <form action="{{ url_for('excluir', id=tarefa['id']) }}" method="POST"
+                              onsubmit="return confirm('Excluir esta tarefa?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-excluir">Excluir</button>
+                        </form>
                     </div>
-
                 {% endfor %}
-
             {% else %}
-
-                <p class="vazio">
-                    Nenhuma tarefa encontrada neste filtro.
-                </p>
-
+                <p class="vazio">Nenhuma tarefa encontrada neste filtro.</p>
             {% endif %}
-
         </section>
-
     </main>
 
     <script>
-        const botoesEditar = document.querySelectorAll(".btn-editar");
-
-        botoesEditar.forEach(function (botao) {
-
+        document.querySelectorAll(".btn-editar").forEach(function (botao) {
             botao.addEventListener("click", function () {
-
-                const id = botao.dataset.id;
-                const campo = document.getElementById("tarefa-" + id);
                 const formulario = botao.closest("form");
+                const campoDescricao = formulario.querySelector('input[name="descricao"]');
+                const campoData = formulario.querySelector('input[name="data_entrega"]');
+                const modoEdicao = formulario.querySelector('input[name="modo_edicao"]');
 
-                if (campo.hasAttribute("readonly")) {
-                    campo.removeAttribute("readonly");
-                    campo.focus();
+                if (campoDescricao.hasAttribute("readonly")) {
+                    campoDescricao.removeAttribute("readonly");
+                    campoData.disabled = false;
+                    modoEdicao.value = "1";
+                    campoDescricao.focus();
+                    campoDescricao.setSelectionRange(campoDescricao.value.length, campoDescricao.value.length);
                     botao.textContent = "Salvar";
-
+                } else if (campoDescricao.value.trim() !== "") {
+                    campoData.disabled = false;
+                    formulario.requestSubmit();
                 } else {
-                    if (campo.value.trim() !== "") {
-                        formulario.requestSubmit();
-                    } else {
-                        campo.focus();
-                    }
+                    campoDescricao.focus();
                 }
-
             });
-
         });
+
+        // Mantém o painel de aparência ancorado visualmente ao botão.
+        const botaoAparencia = document.getElementById("btnAbrirAparencia");
+        const painelAparencia = document.getElementById("painelAparencia");
+        const botaoFecharAparencia = document.getElementById("btnFecharAparencia");
+
+        function posicionarPainelAparencia() {
+            const retangulo = botaoAparencia.getBoundingClientRect();
+            const largura = Math.min(340, window.innerWidth - 32);
+            painelAparencia.style.position = "fixed";
+            painelAparencia.style.width = largura + "px";
+            painelAparencia.style.right = Math.max(16, window.innerWidth - retangulo.right) + "px";
+            painelAparencia.style.left = "auto";
+
+            // Abre abaixo do botão; se não houver espaço, abre acima dele.
+            const alturaPainel = painelAparencia.offsetHeight;
+            const espacoAbaixo = window.innerHeight - retangulo.bottom;
+            if (espacoAbaixo >= alturaPainel + 12 || retangulo.top < alturaPainel + 12) {
+                painelAparencia.style.top = Math.min(
+                    window.innerHeight - alturaPainel - 12,
+                    retangulo.bottom + 8
+                ) + "px";
+            } else {
+                painelAparencia.style.top = Math.max(12, retangulo.top - alturaPainel - 8) + "px";
+            }
+        }
+
+        function fecharPainelAparencia() {
+            painelAparencia.hidden = true;
+            botaoAparencia.setAttribute("aria-expanded", "false");
+        }
+
+        botaoAparencia.addEventListener("click", function () {
+            const vaiAbrir = painelAparencia.hidden;
+            if (vaiAbrir) {
+                painelAparencia.hidden = false;
+                posicionarPainelAparencia();
+            } else {
+                fecharPainelAparencia();
+            }
+            botaoAparencia.setAttribute("aria-expanded", String(vaiAbrir));
+        });
+
+        botaoFecharAparencia.addEventListener("click", fecharPainelAparencia);
+
+        window.addEventListener("resize", function () {
+            if (!painelAparencia.hidden) posicionarPainelAparencia();
+        });
+        window.addEventListener("scroll", function () {
+            if (!painelAparencia.hidden) posicionarPainelAparencia();
+        }, true);
+
+        document.addEventListener("keydown", function (evento) {
+            if (evento.key === "Escape") fecharPainelAparencia();
+        });
+
+        document.addEventListener("click", function (evento) {
+            if (!painelAparencia.hidden &&
+                !painelAparencia.contains(evento.target) &&
+                !botaoAparencia.contains(evento.target)) {
+                fecharPainelAparencia();
+            }
+        });
+
+        // Enter dentro do campo em modo de edição também salva (já é o padrão do formulário).
     </script>
-
 </body>
-
 </html>

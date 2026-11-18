@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar - TaskFlow</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container caixa-autenticacao">
+        <h1>TaskFlow</h1>
+        <p class="subtitulo">Entre na sua conta</p>
+
+        {% with mensagens = get_flashed_messages() %}
+            {% for mensagem in mensagens %}
+                <p class="mensagem">{{ mensagem }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST" class="form-autenticacao">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label for="email">E-mail</label>
+            <input type="email" id="email" name="email" placeholder="Seu e-mail"
+                   value="{{ email }}" autocomplete="email" required>
+
+            <label for="senha">Senha</label>
+            <input type="password" id="senha" name="senha" placeholder="Sua senha"
+                   autocomplete="current-password" required>
+
+            <button type="submit">Entrar</button>
+        </form>
+
+        <p class="texto-autenticacao">
+            Ainda não tem uma conta? <a href="{{ url_for('cadastro') }}">Cadastre-se</a>
+        </p>
+    </main>
+</body>
+</html>
